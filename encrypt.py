@@ -1,6 +1,5 @@
-import socket
+import socket, random, pickle
 
-print("Encryption")
 def permute(k, arr, n):
 	return ''.join([k[arr[i] - 1] for i in range(n)])
 
@@ -107,9 +106,14 @@ final_perm = [40, 8, 48, 16, 56, 24, 64, 32,
 			33, 1, 41, 9, 49, 17, 57, 25]
 
 
-def encrypt(pt, rkb):
+def encrypt(pt, rkb, rk):
 	pt = hex2bin(pt)
 	pt = permute(pt, initial_perm, 64)
+
+	print("After initial permutation", bin2hex(pt))
+	print(" ------------------------------------------------------------ ")
+	print("| Round      |  left      |  Right     |  round key (48-bit) |")
+	print(" ------------------------------------------------------------ ")
 	
 	left = pt[0:32]
 	right = pt[32:64]
@@ -136,10 +140,43 @@ def encrypt(pt, rkb):
 
 		if(i != 15):
 			left, right = right, left
+		if(i < 10):
+			print("| Round ", i, "  | ", bin2hex(left),
+				" | ", bin2hex(right), " | ", rk[i], "      | ")
+		else:
+			print("| Round ", i, " | ", bin2hex(left),
+				" | ", bin2hex(right), " | ", rk[i], "      | ")
 	
 	combine = left + right
 	cipher_text = permute(combine, final_perm, 64)
 	return cipher_text
+
+def cbc_encrypt(plaintext, rkb, rk, iv):
+    # Convert IV to binary
+    iv_bin = hex2bin(iv)
+    cipher_text = ""
+    
+    # Process plaintext in 64-bit blocks
+    for i in range(0, len(plaintext), 16):
+        block = plaintext[i:i+16].ljust(16, '0')  # Pad block to 64 bits if necessary
+        block_bin = hex2bin(block)
+        
+        # XOR with IV or previous cipher block
+        xor_block = xor(block_bin, iv_bin)
+        
+        # Encrypt block
+        encrypted_block = encrypt(bin2hex(xor_block), rkb, rk)
+        
+        # Append to final ciphertext and update IV
+        cipher_text += encrypted_block
+        iv_bin = hex2bin(encrypted_block)
+        
+    return cipher_text
+
+# def generate_random_key():
+# 	characters = '123456789ABCDEF'
+# 	key = ''.join(random.choice(characters) for _ in range(16))
+# 	return key
 
 def start_server():
 	server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -151,8 +188,17 @@ def start_server():
 	print(f"Server berjalan di {host}:{port}")
 
 	client_socket, addr = server_socket.accept()
-	print(f"Menerima koneksi dari {addr}")
-	key = '1010101010101010101010101010101010101010101010101010101010101010'
+	print(f"Menerima koneksi dari {addr} \n")
+
+	pt = "ADA0123ADA456789"
+	print("Plain Text : ", pt)
+	# key = generate_random_key()
+	key = "ABCDEF0123456789"
+	print("Key : ", key, "\n")
+	key = hex2bin(key)
+	print("Key (Biner) : ", key)
+	iv = "A1B2C3D4E5F6A7B8"
+	print("Initial Value : ", iv, "\n")
 
 	keyp = [57, 49, 41, 33, 25, 17, 9,
 			1, 58, 50, 42, 34, 26, 18,
@@ -186,20 +232,33 @@ def start_server():
 	left = key[0:28] 
 	right = key[28:56]
 	rkb = []
+	rk = []
 
 	for i in range(0, 16):
 		
 		left = shift_left(left, shift_table[i])
 		right = shift_left(right, shift_table[i])
+
 		combine_str = left + right
 		round_key = permute(combine_str, key_comp, 48)
-		rkb.append(round_key)
+		round_key_hex = bin2hex(round_key)
+		print("round key ke-", i+1,": ", bin2hex(round_key))
 
+		rkb.append(round_key)
+		rk.append(round_key_hex)
 		
-	pt = "ADA0123ADA456789"
-	ciphertext_h1 = bin2hex(encrypt(pt, rkb))
-	print("Plain Text : ", pt)
-	client_socket.send(ciphertext_h1.encode())
+
+	# Send rkb to client
+	
+	print("\nEncryption")
+	# ciphertext_h1 = bin2hex(cbc_encrypt(pt, rkb, rk, iv))
+	ciphertext_h1 = bin2hex(encrypt(pt, rkb, rk))
+
+	data = {
+		"ciphertext_h1": ciphertext_h1,
+	}
+
+	client_socket.send(pickle.dumps(data))
 	print(f"Chipertext yang dikirim ke client: {ciphertext_h1}")
 	client_socket.close()
 if __name__ == "__main__":

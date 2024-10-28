@@ -1,6 +1,6 @@
-import socket
+import socket, pickle
 
-print("Decryption")
+
 def permute(k, arr, n):
     return ''.join([k[arr[i] - 1] for i in range(n)])
 
@@ -112,9 +112,14 @@ final_perm = [40, 8, 48, 16, 56, 24, 64, 32,
             33, 1, 41, 9, 49, 17, 57, 25]
 
 
-def decrypt(pt, rkb):
+def decrypt(pt, rkb, rk):
     pt = hex2bin(pt)
     pt = permute(pt, initial_perm, 64)
+
+    print("After initial permutation", bin2hex(pt))
+    print(" ------------------------------------------------------------ ")
+    print("| Round      |  left      |  Right     |  round key (48-bit) |")
+    print(" ------------------------------------------------------------ ")
     
     left = pt[0:32]
     right = pt[32:64]
@@ -140,6 +145,12 @@ def decrypt(pt, rkb):
     
         if(i != 15):
             left, right = right, left
+        if(i < 10):
+            print("| Round ", i, "  | ", bin2hex(left),
+				" | ", bin2hex(right), " | ", rk[i], "      | ")
+        else:
+            print("| Round ", i, " | ", bin2hex(left),
+				" | ", bin2hex(right), " | ", rk[i], "      | ")
         
     
     combine = left + right
@@ -149,6 +160,22 @@ def decrypt(pt, rkb):
     
     return cipher_text
 
+def cbc_decrypt(ciphertext, rkb, rk, iv):
+    iv_bin = hex2bin(iv)
+    plaintext = ""
+    
+    for i in range(0, len(ciphertext), 16):
+        block = ciphertext[i:i+16]
+        decrypted_block = decrypt(block, rkb, rk)
+        
+        # XOR decrypted block with IV or previous ciphertext block
+        xor_block = xor(hex2bin(decrypted_block), iv_bin)
+        plaintext += bin2hex(xor_block)
+        
+        iv_bin = hex2bin(block)  # Update IV with current ciphertext block
+        
+    return plaintext.rstrip('0')
+
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host = socket.gethostname()
@@ -156,7 +183,10 @@ def start_client():
     client_socket.connect((host, port))
 
     print(f"Terhubung ke server di {host}:{port}")
-    key = '1010101010101010101010101010101010101010101010101010101010101010'
+
+    key = "ABCDEF0123456789"
+    key = hex2bin(key)
+    iv = "A1B2C3D4E5F6A7B8"
 
     keyp = [57, 49, 41, 33, 25, 17, 9,
             1, 58, 50, 42, 34, 26, 18,
@@ -167,7 +197,6 @@ def start_client():
             14, 6, 61, 53, 45, 37, 29,
             21, 13, 5, 28, 20, 12, 4]
 
-
     key = permute(key, keyp, 56)
 
 
@@ -175,6 +204,9 @@ def start_client():
                 2, 2, 2, 2,
                 1, 2, 2, 2,
                 2, 2, 2, 1]
+
+    rkb_decrypt = []  
+        
 
 
     key_comp = [14, 17, 11, 24, 1, 5,
@@ -185,22 +217,35 @@ def start_client():
                 30, 40, 51, 45, 33, 48,
                 44, 49, 39, 56, 34, 53,
                 46, 42, 50, 36, 29, 32]
+    
+    data_rec = client_socket.recv(2048)
+    
+    data_rec = pickle.loads(data_rec)
+    
+    cipher_text = data_rec["ciphertext_h1"]
 
+    print("Decryption\n")
+
+    print("Cipher Text : ", cipher_text)
 
     left = key[0:28] 
     right = key[28:56]
-    rkb_decrypt = []  
+    rkb_decrypt = []
+    rk_decrypt = []
 
     for i in range(0, 16):
         left = shift_left(left, shift_table[i])
         right = shift_left(right, shift_table[i])
         combine_str = left + right
         round_key = permute(combine_str, key_comp, 48)
-        rkb_decrypt.insert(0, round_key)  
+        round_key_hex = bin2hex(round_key)
         
-    cipher_text = client_socket.recv(1024).decode()
-    text = bin2hex(decrypt(cipher_text, rkb_decrypt))
-    print("Cipher Text : ", cipher_text)
+        rkb_decrypt.insert(0, round_key) 
+        rk_decrypt.insert(0, round_key_hex) 
+        
+
+    # text = cbc_decrypt(cipher_text, rkb_decrypt, rk_decrypt, iv)
+    text = bin2hex(decrypt(cipher_text, rkb_decrypt, rk_decrypt))
     print("Plain Text : ", text)
 if __name__ == "__main__":
     start_client()
