@@ -3,6 +3,9 @@ import socket, random, pickle
 def permute(k, arr, n):
 	return ''.join([k[arr[i] - 1] for i in range(n)])
 
+def string_to_hex(s):
+	return ''.join(format(ord(c), '02x') for c in s)
+
 def hex2bin(s):
 	return bin(int(s, 16))[2:].zfill(len(s) * 4)
 
@@ -214,7 +217,8 @@ def start_server():
 	client_socket, addr = server_socket.accept()
 	print(f"Menerima koneksi dari {addr} \n")
 
-	pt = "0123456789abcdef0123456789ABCDEF0123456789abcdef0123456789ABCDEF"
+	pt = 'makanbaksoBARENGANDIKA000'
+	pt = string_to_hex(pt)
 	print("Plain Text : ", pt)
 	# key = generate_random_key()
 	key = "ABCDEF0123456789"

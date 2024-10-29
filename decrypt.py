@@ -13,6 +13,10 @@ def bin2hex(s):
     hex_value = hex_value.zfill(len(s) // 4)
     return hex_value
 
+def hex2str(hex_string):
+    bytes_object = bytes.fromhex(hex_string)
+    return bytes_object.decode("utf-8")
+
 def bin2dec(binary):
     return int(str(binary), 2)
 
@@ -281,6 +285,7 @@ def start_client():
 
     # text = cbc_decrypt(cipher_text, rkb_decrypt, rk_decrypt, iv)
     text = bin2hex(ecb_decrypt(cipher_text, rkb_decrypt, rk_decrypt))
+    text = hex2str(text)
     # text = ecb_decrypt(cipher_text, rkb_decrypt, rk_decrypt)
     print("Plain Text After Decrypt: ", text)
 if __name__ == "__main__":
