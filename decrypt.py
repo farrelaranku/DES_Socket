@@ -161,8 +161,6 @@ def decrypt(pt, rkb, rk):
         
     
     combine = left + right
-
-    
     cipher_text = permute(combine, final_perm, 64)
     
     return cipher_text
@@ -170,11 +168,8 @@ def decrypt(pt, rkb, rk):
 
 
 def ecb_decrypt(ciphertext, rkb, rk):
-    # ciphertext = unpad_hex(ciphertext)
-    # print("Ciphertext unpad : ", ciphertext)
     plaintext = ""
     
-    # Process ciphertext in 64-bit blocks
     for i in range(0, len(ciphertext), 16):
         block = ciphertext[i:i+16]
         # print("Block", i, " : ", block)
@@ -195,7 +190,6 @@ def start_client():
 
     key = "ABCDEF0123456789"
     key = hex2bin(key)
-    iv = "A1B2C3D4E5F6A7B8"
 
     keyp = [57, 49, 41, 33, 25, 17, 9,
             1, 58, 50, 42, 34, 26, 18,
@@ -227,37 +221,36 @@ def start_client():
                 44, 49, 39, 56, 34, 53,
                 46, 42, 50, 36, 29, 32]
     
-    data_rec = client_socket.recv(2048)
-    
-    data_rec = pickle.loads(data_rec)
-    
-    cipher_text = data_rec["ciphertext_h1"]
-
-    print("Decryption\n")
-    print("Cipher Text : ", cipher_text)
-    # cipher_text = unpad_hex(cipher_text)
-    # print("Cipher Text unpad : ", cipher_text)
-
-    left = key[0:28] 
-    right = key[28:56]
-    rkb_decrypt = []
-    rk_decrypt = []
-
-    for i in range(0, 16):
-        left = shift_left(left, shift_table[i])
-        right = shift_left(right, shift_table[i])
-        combine_str = left + right
-        round_key = permute(combine_str, key_comp, 48)
-        round_key_hex = bin2hex(round_key)
+    while True:
+        data_rec = client_socket.recv(2048)
         
-        rkb_decrypt.insert(0, round_key) 
-        rk_decrypt.insert(0, round_key_hex) 
+        data_rec = pickle.loads(data_rec)
         
+        cipher_text = data_rec["ciphertext_h1"]
 
-    # text = cbc_decrypt(cipher_text, rkb_decrypt, rk_decrypt, iv)
-    text = bin2hex(ecb_decrypt(cipher_text, rkb_decrypt, rk_decrypt))
-    text = hex2str(text)
-    # text = ecb_decrypt(cipher_text, rkb_decrypt, rk_decrypt)
-    print("Plain Text After Decrypt: ", text)
+        print("Decryption\n")
+        print("Cipher Text : ", cipher_text)
+
+        left = key[0:28] 
+        right = key[28:56]
+        rkb_decrypt = []
+        rk_decrypt = []
+
+        for i in range(0, 16):
+            left = shift_left(left, shift_table[i])
+            right = shift_left(right, shift_table[i])
+            combine_str = left + right
+            round_key = permute(combine_str, key_comp, 48)
+            round_key_hex = bin2hex(round_key)
+            
+            rkb_decrypt.insert(0, round_key) 
+            rk_decrypt.insert(0, round_key_hex) 
+            
+
+        # text = cbc_decrypt(cipher_text, rkb_decrypt, rk_decrypt, iv)
+        text = bin2hex(ecb_decrypt(cipher_text, rkb_decrypt, rk_decrypt))
+        text = hex2str(text)
+        print("Plain Text After Decrypt: ", text)
+        print(" -----------------------------")
 if __name__ == "__main__":
     start_client()

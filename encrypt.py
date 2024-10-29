@@ -158,7 +158,7 @@ def ecb_encrypt(plaintext, rkb, rk):
     cipher_text = ""
     
     for i in range(0, len(plaintext), 16):
-        block = plaintext[i:i+16].ljust(16, '0')  # Pad block to 64 bits if necessary
+        block = plaintext[i:i+16].ljust(16, '0')
         encrypted_block = encrypt(block, rkb, rk)
         
         cipher_text += encrypted_block
@@ -177,79 +177,76 @@ def start_server():
 	client_socket, addr = server_socket.accept()
 	print(f"Menerima koneksi dari {addr} \n")
 
-	pt = input("Masukkan String Plaintext: ")
-	print("Plain Text : ", pt)
-	pt = string_to_hex(pt)
-	# key = generate_random_key()
-	key = "ABCDEF0123456789"
-	print("Key : ", key, "\n")
-	key = hex2bin(key)
-	print("Key (Biner) : ", key)
-	iv = "A1B2C3D4E5F6A7B8"
-	print("Initial Value : ", iv, "\n")
-
-	keyp = [57, 49, 41, 33, 25, 17, 9,
-			1, 58, 50, 42, 34, 26, 18,
-			10, 2, 59, 51, 43, 35, 27,
-			19, 11, 3, 60, 52, 44, 36,
-			63, 55, 47, 39, 31, 23, 15,
-			7, 62, 54, 46, 38, 30, 22,
-			14, 6, 61, 53, 45, 37, 29,
-			21, 13, 5, 28, 20, 12, 4]
-
-
-	key = permute(key, keyp, 56)
-
-
-	shift_table = [1, 1, 2, 2,
-				2, 2, 2, 2,
-				1, 2, 2, 2,
-				2, 2, 2, 1]
-
-
-	key_comp = [14, 17, 11, 24, 1, 5,
-				3, 28, 15, 6, 21, 10,
-				23, 19, 12, 4, 26, 8,
-				16, 7, 27, 20, 13, 2,
-				41, 52, 31, 37, 47, 55,
-				30, 40, 51, 45, 33, 48,
-				44, 49, 39, 56, 34, 53,
-				46, 42, 50, 36, 29, 32]
-
-
-	left = key[0:28] 
-	right = key[28:56]
-	rkb = []
-	rk = []
-
-	for i in range(0, 16):
+	while True :
+		print("--------------------")
+		pt = input("Masukkan String Plaintext: ")
+		print("Plain Text : ", pt)
+		pt = string_to_hex(pt)
 		
-		left = shift_left(left, shift_table[i])
-		right = shift_left(right, shift_table[i])
-
-		combine_str = left + right
-		round_key = permute(combine_str, key_comp, 48)
-		round_key_hex = bin2hex(round_key)
-		# print("round key ke-", i+1,": ", bin2hex(round_key))
-
-		rkb.append(round_key)
-		rk.append(round_key_hex)
+		key = "ABCDEF0123456789"
+		print("Key : ", key, "\n")
+		key = hex2bin(key)
+		print("Key (Biner) : ", key)
 		
+		keyp = [57, 49, 41, 33, 25, 17, 9,
+				1, 58, 50, 42, 34, 26, 18,
+				10, 2, 59, 51, 43, 35, 27,
+				19, 11, 3, 60, 52, 44, 36,
+				63, 55, 47, 39, 31, 23, 15,
+				7, 62, 54, 46, 38, 30, 22,
+				14, 6, 61, 53, 45, 37, 29,
+				21, 13, 5, 28, 20, 12, 4]
 
+
+		key = permute(key, keyp, 56)
+
+
+		shift_table = [1, 1, 2, 2,
+					2, 2, 2, 2,
+					1, 2, 2, 2,
+					2, 2, 2, 1]
+
+
+		key_comp = [14, 17, 11, 24, 1, 5,
+					3, 28, 15, 6, 21, 10,
+					23, 19, 12, 4, 26, 8,
+					16, 7, 27, 20, 13, 2,
+					41, 52, 31, 37, 47, 55,
+					30, 40, 51, 45, 33, 48,
+					44, 49, 39, 56, 34, 53,
+					46, 42, 50, 36, 29, 32]
+
+
+		left = key[0:28] 
+		right = key[28:56]
+		rkb = []
+		rk = []
+
+		for i in range(0, 16):
+			
+			left = shift_left(left, shift_table[i])
+			right = shift_left(right, shift_table[i])
+
+			combine_str = left + right
+			round_key = permute(combine_str, key_comp, 48)
+			round_key_hex = bin2hex(round_key)
+			# print("round key ke-", i+1,": ", bin2hex(round_key))
+
+			rkb.append(round_key)
+			rk.append(round_key_hex)
+			
+
+		
+		print("\nEncryption")
+		
+		ciphertext_h1 = bin2hex(ecb_encrypt(pt, rkb, rk))
+		data = {
+			"ciphertext_h1": ciphertext_h1,
+		}
+
+		client_socket.send(pickle.dumps(data))
+		print(f"Chipertext yang dikirim ke client: {ciphertext_h1}")
 	
-	print("\nEncryption")
-	# ciphertext_h1 = bin2hex(cbc_encrypt(pt, rkb, rk, iv))
-	ciphertext_h1 = bin2hex(ecb_encrypt(pt, rkb, rk))
-	# print("Chipertext sblm pad: ", ciphertext_h1)
-	# ciphertext_h1 = pad_hex(ciphertext_h1)
-	# ciphertext_h1 = ecb_encrypt(pt, rkb, rk)
-	data = {
-		"ciphertext_h1": ciphertext_h1,
-	}
-
-	client_socket.send(pickle.dumps(data))
-	print(f"Chipertext yang dikirim ke client: {ciphertext_h1}")
-	client_socket.close()
 if __name__ == "__main__":
     start_server()
 
