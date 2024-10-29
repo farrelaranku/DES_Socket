@@ -154,56 +154,16 @@ def encrypt(pt, rkb, rk):
 	cipher_text = permute(combine, final_perm, 64)
 	return cipher_text
 
-# def cbc_encrypt(plaintext, rkb, rk, iv):
-#     # Convert IV to binary
-#     iv_bin = hex2bin(iv)
-#     cipher_text = ""
-    
-#     # Process plaintext in 64-bit blocks
-#     for i in range(0, len(plaintext), 16):
-#         block = plaintext[i:i+16].ljust(16, '0')  # Pad block to 64 bits if necessary
-#         block_bin = hex2bin(block)
-        
-#         # XOR with IV or previous cipher block
-#         xor_block = xor(block_bin, iv_bin)
-        
-#         # Encrypt block
-#         encrypted_block = encrypt(bin2hex(xor_block), rkb, rk)
-        
-#         # Append to final ciphertext and update IV
-#         cipher_text += encrypted_block
-#         iv_bin = hex2bin(encrypted_block)
-        
-#     return cipher_text
-
 def ecb_encrypt(plaintext, rkb, rk):
     cipher_text = ""
     
-    # Process plaintext in 64-bit blocks
     for i in range(0, len(plaintext), 16):
         block = plaintext[i:i+16].ljust(16, '0')  # Pad block to 64 bits if necessary
         encrypted_block = encrypt(block, rkb, rk)
         
-        # Append encrypted block to the final ciphertext
         cipher_text += encrypted_block
     
     return cipher_text
-
-# def generate_random_key():
-# 	characters = '123456789ABCDEF'
-# 	key = ''.join(random.choice(characters) for _ in range(16))
-# 	return key
-
-def pad_hex(hex_string):
-    # Hitung panjang padding dalam bytes
-    padding_length = 8 - (len(hex_string) // 2) % 8
-    
-    # Buat padding dalam format hex
-    padding = hex(padding_length)[2:].upper() * 2  # Menggunakan dua karakter hex
-    
-    # Gabungkan hex_string dengan padding
-    padded_hex = hex_string + padding
-    return padded_hex
 
 def start_server():
 	server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -217,9 +177,9 @@ def start_server():
 	client_socket, addr = server_socket.accept()
 	print(f"Menerima koneksi dari {addr} \n")
 
-	pt = 'makanbaksoBARENGANDIKA000'
-	pt = string_to_hex(pt)
+	pt = input("Masukkan String Plaintext: ")
 	print("Plain Text : ", pt)
+	pt = string_to_hex(pt)
 	# key = generate_random_key()
 	key = "ABCDEF0123456789"
 	print("Key : ", key, "\n")
