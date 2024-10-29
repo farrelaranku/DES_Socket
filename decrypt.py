@@ -8,7 +8,10 @@ def hex2bin(s):
     return bin(int(s, 16))[2:].zfill(len(s) * 4)
 
 def bin2hex(s):
-    return hex(int(s, 2))[2:].upper().zfill(len(s) // 4)
+    integer_value = int(s, 2)
+    hex_value = hex(integer_value)[2:].upper()
+    hex_value = hex_value.zfill(len(s) // 4)
+    return hex_value
 
 def bin2dec(binary):
     return int(str(binary), 2)
@@ -160,21 +163,52 @@ def decrypt(pt, rkb, rk):
     
     return cipher_text
 
-def cbc_decrypt(ciphertext, rkb, rk, iv):
-    iv_bin = hex2bin(iv)
+# def cbc_decrypt(ciphertext, rkb, rk, iv):
+#     iv_bin = hex2bin(iv)
+#     plaintext = ""
+    
+#     for i in range(0, len(ciphertext), 16):
+#         block = ciphertext[i:i+16]
+#         decrypted_block = decrypt(block, rkb, rk)
+        
+#         # XOR decrypted block with IV or previous ciphertext block
+#         xor_block = xor(hex2bin(decrypted_block), iv_bin)
+#         plaintext += bin2hex(xor_block)
+        
+#         iv_bin = hex2bin(block)  # Update IV with current ciphertext block
+        
+#     return plaintext.rstrip('0')
+
+def unpad_hex(hex_string):
+    # Ambil panjang dari padding
+    padding_length = int(hex_string[-2:], 16)  # Mengambil 2 karakter terakhir untuk menentukan panjang padding
+    
+    # Menghapus padding dari string hexadecimal
+    unpadded_hex = hex_string[:-2]  # Hapus 2 karakter terakhir
+    
+    # Hapus sebanyak `padding_length` karakter dari akhir
+    if padding_length > 0:
+        unpadded_hex = unpadded_hex[:-padding_length * 2]  # Menghapus karakter hex, 2 karakter per byte
+    
+    return unpadded_hex
+
+def ecb_decrypt(ciphertext, rkb, rk):
+    # ciphertext = unpad_hex(ciphertext)
+    # print("Ciphertext unpad : ", ciphertext)
     plaintext = ""
     
+    # Process ciphertext in 64-bit blocks
     for i in range(0, len(ciphertext), 16):
         block = ciphertext[i:i+16]
+        # print("Block", i, " : ", block)
+        # Decrypt the block directly without XOR
         decrypted_block = decrypt(block, rkb, rk)
-        
-        # XOR decrypted block with IV or previous ciphertext block
-        xor_block = xor(hex2bin(decrypted_block), iv_bin)
-        plaintext += bin2hex(xor_block)
-        
-        iv_bin = hex2bin(block)  # Update IV with current ciphertext block
-        
-    return plaintext.rstrip('0')
+        # print("Decrypted Block", i, " : ", decrypted_block)
+        # Append decrypted block to final plaintext
+        plaintext += decrypted_block
+        # print("Plaintext", i, " : ", plaintext)
+    
+    return plaintext
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -225,8 +259,9 @@ def start_client():
     cipher_text = data_rec["ciphertext_h1"]
 
     print("Decryption\n")
-
     print("Cipher Text : ", cipher_text)
+    # cipher_text = unpad_hex(cipher_text)
+    # print("Cipher Text unpad : ", cipher_text)
 
     left = key[0:28] 
     right = key[28:56]
@@ -245,7 +280,8 @@ def start_client():
         
 
     # text = cbc_decrypt(cipher_text, rkb_decrypt, rk_decrypt, iv)
-    text = bin2hex(decrypt(cipher_text, rkb_decrypt, rk_decrypt))
-    print("Plain Text : ", text)
+    text = bin2hex(ecb_decrypt(cipher_text, rkb_decrypt, rk_decrypt))
+    # text = ecb_decrypt(cipher_text, rkb_decrypt, rk_decrypt)
+    print("Plain Text After Decrypt: ", text)
 if __name__ == "__main__":
     start_client()
